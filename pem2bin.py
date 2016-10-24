@@ -40,7 +40,7 @@ def printData(data, skipComma):
         if (idx % 16 == 15):
             print("\n", end="")
 
-def pem2bin(fields):
+def pem2bin(fields, sizes):
 
     for idx,field in enumerate(fields):
         data = parseField(field)
@@ -48,15 +48,16 @@ def pem2bin(fields):
         if (field == "publicExponent"):
             continue
 
-        if (field == "prime1") or (field == "prime2") or (field == "exponent1"):
-            data = data[1:]
+        data = data[len(data)-sizes[idx]:]
 
         printData(data, idx == (len(fields)-1))
 
 if __name__ == '__main__':
     if (len(sys.argv) > 1 and sys.argv[1] == "public"):
         fields = [ "Modulus" ]
+        sizes = [ 256 ]
     else:
         fields = [ "modulus", "publicExponent", "privateExponent",
                    "prime1", "prime2", "exponent1", "exponent2", "coefficient" ]
-    pem2bin(fields)
+        sizes = [ 256, 4, 256, 128, 128, 128, 128, 128, 128 ]
+    pem2bin(fields, sizes)
