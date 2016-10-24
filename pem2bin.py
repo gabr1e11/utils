@@ -1,7 +1,22 @@
 #!/usr/bin/python3
 import sys
 
+PEM_FORMAT = [ [ "modulus",         256 ],
+               [ "publicexponent",  4 ],
+               [ "privateexponent", 128 ],
+               [ "prime1",          128 ],
+               [ "prime2",          128 ],
+               [ "exponent1",       128 ],
+               [ "exponent2",       128 ],
+               [ "coefficient",     128] ]
+PAD_SIZE = 16
 line = ''
+
+def readPEMLine():
+    try:
+        return input().lower().split(':')
+    except EOFError:
+        return None
 
 def parseField(field):
 
@@ -9,15 +24,16 @@ def parseField(field):
     while True:
         if (line != None) and (len(line) > 0) and (line[0] == field):
             break
+        line = readPEMLine()
+        if (line == None):
+            return None
 
-        line = input().split(':')
-
-    if (field == "publicExponent"):
+    if (field == "publicexponent"):
         return [ line[1].split()[0] ]
 
     data = []
     while True:
-        line = input().split(':')
+        line = readPEMLine()
         if '' in line:
             line.remove('')
 
@@ -31,33 +47,37 @@ def parseField(field):
 
     return data
 
-def printData(data, skipComma):
+def printData(data, addComma):
+
+    if (addComma):
+        print(", ")
+
+    lastIdx = len(data)-1
 
     for idx,elem in enumerate(data):
         print(elem, end="")
-        if (not skipComma or idx != len(data)-1):
+        if (idx != lastIdx):
             print(", ", end="")
-        if (idx % 16 == 15):
-            print("\n", end="")
 
-def pem2bin(fields, sizes):
-
-    for idx,field in enumerate(fields):
-        data = parseField(field)
-
-        if (field == "publicExponent"):
-            continue
-
-        data = data[len(data)-sizes[idx]:]
-
-        printData(data, idx == (len(fields)-1))
+            if ((idx % PAD_SIZE) == PAD_SIZE-1):
+                print("\n", end="")
 
 if __name__ == '__main__':
-    if (len(sys.argv) > 1 and sys.argv[1] == "public"):
-        fields = [ "Modulus" ]
-        sizes = [ 256 ]
-    else:
-        fields = [ "modulus", "publicExponent", "privateExponent",
-                   "prime1", "prime2", "exponent1", "exponent2", "coefficient" ]
-        sizes = [ 256, 4, 256, 128, 128, 128, 128, 128, 128 ]
-    pem2bin(fields, sizes)
+    firstTime = True
+    publicExponent = None
+
+    for idx,entry in enumerate(PEM_FORMAT):
+        data = parseField(entry[0])
+        if (data == None):
+            break
+
+        # Don't ouput the public exponent
+        if (entry[0] == "publicexponent"):
+            publicExponent = data[0];
+            continue
+
+        printData(data[-entry[1]:], not firstTime)
+        firstTime = False
+
+    print("\n")
+    print("Public Exponent: " + publicExponent);
