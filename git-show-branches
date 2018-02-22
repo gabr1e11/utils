@@ -1,0 +1,165 @@
+#!/bin/bash
+set -f
+
+# Read config from git
+user_name="`git config --get user.name`"
+
+# Default values
+show_local=0
+show_remote=0
+show_mine=0
+show_others=0
+show_merged=0
+show_unmerged=0
+
+# Helper functions
+show_branches()
+{
+    retcode=1
+
+    options=${@:1}
+    for branch in `git branch ${options} | grep -v HEAD`;
+    do
+        if [[ $branch != *"origin/master"* ]] && [[ $branch != *"origin/develop"* ]] && [[ $branch != *"origin/release/"* ]]
+        then
+            echo -e `git show --format="%ci %cr %an" $branch | head -n 1` \\t$branch
+            retcode=1
+        fi
+    done | sort -r
+
+    return $retcode
+}
+
+show_message()
+{
+    IFS='±'
+    echo -ne $1 >&2
+    unset IFS
+}
+
+show_usage()
+{
+    command_name="`basename $0`"
+    echo "Usage: $command_name [-o] [-u] [-r] [-l] [-m|-n]"
+    echo "    -o: Shows only branches from other users"
+    echo "    -u: Shows only the local user as configured in git user.name"
+    echo "    -r: Shows only remote branches"
+    echo "    -u: Shows only local branches"
+    echo "    -m: Shows only merged branches"
+    echo "    -n: Shows only not merged branches"
+    echo ""
+}
+
+# Parse user options
+while getopts "ourlmnh" opt; do
+    case $opt in
+        o)
+            show_others=1
+            ;;
+        u)
+            show_mine=1
+            ;;
+        r)
+            show_remote=1
+            ;;
+        l)
+            show_local=1
+            ;;
+        m)
+            show_merged=1
+            ;;
+        n)
+            show_unmerged=1
+            ;;
+        h|*)
+            show_usage
+            exit 1
+            ;;
+    esac
+done
+
+# Main
+main()
+{
+    git_branch_options=""
+
+    # Merged/unmerged option
+    if [ "$show_merged" -eq 0 ] && [ "$show_unmerged" -eq 0 ]
+    then
+        # Default value
+        show_merged=1
+    elif [ "$show_merged" -eq 1 ] && [ "$show_unmerged" -eq 1 ]
+    then
+        echo ""
+        echo "ERROR: only one of -m and -n options supported"
+        echo ""
+        exit 1
+    fi
+
+    # Local/remote defaults
+    if [ "$show_local" -eq 0 ] && [ "$show_remote" -eq 0 ]
+    then
+        # Default value
+        show_local=1
+    fi
+
+    # Mine/others defaults
+    if [ "$show_mine" -eq 0 ] && [ "$show_others" -eq 0 ]
+    then
+        # Default value
+        show_mine=1
+    fi
+
+    # Merged/unmerged defaults
+    if [ "$show_merged" -eq 1 ]
+    then
+        git_branch_options="--merged $git_branch_options"
+    elif [ "$show_unmerged" -eq 1 ]
+    then
+        git_branch_options="--no-merged $git_branch_options"
+    fi
+
+    # Show selected options
+    show_message "Selected options: "
+    if [ "$show_mine" -eq 1 ] && [ "$show_others" -eq 1 ]; then show_message "My and everybody else's ";
+    elif [ "$show_mine" -eq 1 ];  then show_message 'Only my '; 
+    elif [ "$show_others" -eq 1 ];  then show_message "Only other users's "; fi
+
+    if [ "$show_local" -eq 1 ] && [ "$show_remote" -eq 1 ]; then show_message "branches, both remote and local, ";
+    elif [ "$show_mine" -eq 1 ];  then show_message "local branches ";
+    elif [ "$show_others" -eq 1 ];  then show_message "remote branches "; fi
+
+    if [ "$show_merged" -eq 1 ]; then show_message "that are already merged";
+    elif [ "$show_unmerged" -eq 1 ]; then show_message "that are not merged yet"; fi
+    show_message "\n"
+    show_message "git branch flags: $git_branch_options\n\n"
+
+    # Parse selected options
+    if [ "$show_local" -eq 1 ] && [ "$show_remote" -eq 1 ]
+    then
+        git_branch_options="-a $git_branch_options"
+    elif [ "$show_local" -eq 0 ] && [ "$show_remote" -eq 1 ]
+    then
+        git_branch_options="-r $git_branch_options"
+    fi
+
+    # Run the command
+    if [ "$show_mine" -eq 1 ] && [ "$show_others" -eq 0 ]
+    then
+        show_branches $git_branch_options | grep "$user_name"
+    elif [ "$show_mine" -eq 0 ] && [ "$show_others" -eq 1 ]
+    then
+        show_branches $git_branch_options | grep -v "$user_name"
+    else
+        show_branches $git_branch_options
+    fi
+
+    if [ "$?" -eq 0 ];
+    then
+        show_message "\n"
+    fi
+    show_message "Done.\n"
+}
+
+# Call main
+main

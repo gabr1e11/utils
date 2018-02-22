@@ -1,0 +1,67 @@
+#!/bin/bash
+
+options=${@:1}
+
+stdout_file=$(mktemp /tmp/git-show-branches.XXXXXX)
+stderr_file=$(mktemp /tmp/git-show-branches.XXXXXX)
+
+echo "Auto-pruning local references to origin..."
+git remote prune origin
+
+echo "Gathering stale branches info..."
+git-show-branches ${options} >$stdout_file 2>$stderr_file
+
+branches_info=`cat $stdout_file`
+stats_info=`cat $stderr_file`
+
+if [ -z "$branches_info" ]
+then
+    echo -ne "\nNo branches found to be removed, bailing out...\n"
+    exit 0
+fi
+    
+echo "$info"
+echo "Found branches:"
+echo
+echo "$branches_info"
+
+echo
+echo "********************** WARNING! **********************"
+echo " This command will DELETE all branches shown above. If"
+echo " they start with origin/ you'll be deleting the remote"
+echo " repository branches. This operation is DANGEROUS, so"
+echo " you must make sure that you actually want to delete"
+echo " them. If you want to continue, please enter YES"
+echo "******************************************************"
+echo
+
+read -p "Are you really sure? (enter YES to confirm) " -r
+echo
+
+if [[ $REPLY =~ ^YES$ ]]
+then
+    echo "----------------"
+    echo "PRUNING BRANCHES"
+    echo "----------------"
+
+    echo "$branches_info" | rev | cut -f1 | rev | while read branch_name
+    do
+        echo -ne "  -> $branch_name\n"
+        if [[ $branch_name =~ ^origin/ ]]
+        then
+            branch_local_name=`echo $branch_name | cut -d '/' -f 2-`
+            git push origin --delete $branch_local_name
+        else
+            git branch -d $branch_name
+        fi
+
+        if [ "$?" -eq 0 ]
+        then
+            echo "[DONE]"
+        else
+            echo "[ERROR]"
+        fi
+    done
+else
+    echo "Aborting..."
+fi
