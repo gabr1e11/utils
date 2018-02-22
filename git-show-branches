@@ -20,7 +20,7 @@ show_branches()
     options=${@:1}
     for branch in `git branch ${options} | grep -v HEAD`;
     do
-        if [[ $branch != *"origin/master"* ]] && [[ $branch != *"origin/develop"* ]] && [[ $branch != *"origin/release/"* ]]
+        if [[ $branch != *"origin/master"* ]] && [[ $branch != *"origin/develop"* ]] && [[ $branch != *"origin/release/"* ]] && [[ $branch != "*" ]]
         then
             echo -e `git show --format="%ci %cr %an" $branch | head -n 1` \\t$branch
             retcode=1
