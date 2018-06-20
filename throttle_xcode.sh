@@ -5,7 +5,7 @@ declare -a PROCESS_NAME_LIST=("com.apple.dt.SKAgent")
 
 # Defaults
 ROOT_PROCESS_PID=
-CPU_THROTTLE_PERCENT=50
+CPU_THROTTLE_PERCENT=20
 PREV_PROCESS_PID=
 
 function main()

@@ -38,6 +38,11 @@ echo
 read -p "Are you really sure? (enter YES to confirm) " -r
 echo
 
+indent_output()
+{
+    sed 's/^/    /'
+}
+
 if [[ $REPLY =~ ^YES$ ]]
 then
     echo "----------------"
@@ -50,9 +55,9 @@ then
         if [[ $branch_name =~ ^origin/ ]]
         then
             branch_local_name=`echo $branch_name | cut -d '/' -f 2-`
-            git push origin --delete $branch_local_name
+            git push origin --delete $branch_local_name | indent_output
         else
-            git branch -d $branch_name
+            git branch -d $branch_name | indent_output
         fi
 
         if [ "$?" -eq 0 ]
