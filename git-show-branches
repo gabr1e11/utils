@@ -44,7 +44,7 @@ show_usage()
     echo "    -o: Shows only branches from other users"
     echo "    -u: Shows only the local user as configured in git user.name"
     echo "    -r: Shows only remote branches"
-    echo "    -u: Shows only local branches"
+    echo "    -l: Shows only local branches"
     echo "    -m: Shows only merged branches"
     echo "    -n: Shows only not merged branches"
     echo ""
@@ -113,10 +113,10 @@ main()
     # Merged/unmerged defaults
     if [ "$show_merged" -eq 1 ]
     then
-        git_branch_options="--merged $git_branch_options"
+        git_branch_options="--merged stable $git_branch_options"
     elif [ "$show_unmerged" -eq 1 ]
     then
-        git_branch_options="--no-merged $git_branch_options"
+        git_branch_options="--no-merged stable $git_branch_options"
     fi
 
     # Show selected options
